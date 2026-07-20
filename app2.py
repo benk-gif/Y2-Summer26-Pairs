@@ -4,13 +4,13 @@ import requests
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
-# Load .env file
+
 load_dotenv()
 
-# Claude API Configuration
+
 client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-# Google Maps API Key
+
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
 
@@ -85,7 +85,7 @@ def get_route(start, destination):
         route = data["routes"][0]
         leg = route["legs"][0]
 
-        # Extract textual steps
+        
         steps = []
         for step in leg.get("steps", []):
             nav = step.get("navigationInstruction")
@@ -103,13 +103,71 @@ def get_route(start, destination):
         print(f"Routing error: {e}")
         return None
 
-
-def run_chat():
-    print("🚗 Route Agent (Powered by Claude 4.5 & Modern Google Routes API)")
-    print("Type 'exit' to quit")
+# Inside app2.py
+def run_chat(history):
+    print("\n🚗 Ben (Routes Agent) is active!")
+    print("Type 'june' to switch to June, or 'exit' to quit.\n")
 
     system_message = """
-You are a highly capable, articulate GPS navigation expert and route coordinator. Your job is to translate raw, structured route data into natural, confidence-inspiring driving instructions.
+You are Ben, a GPS navigation expert. Translate raw route data into natural driving instructions.
+Base your response on the provided [SYSTEM NOTICE] data.
+"""
+
+    while True:
+        user_input = input("You: ").strip()
+
+        
+        if user_input.lower() in ["june", "switch to june"]:
+            return "june"
+        elif user_input.lower() in ["exit", "quit"]:
+            return "exit"
+
+    
+        history.append({"role": "user", "content": user_input})
+
+        
+        if " to " in user_input.lower():
+            parts = user_input.lower().split(" to ")
+            start = parts[0].replace("route me from ", "")
+            destination = parts[1]
+
+            print("\nFinding route...")
+            route = get_route(start, destination)
+
+            if route:
+                directions_text = "\n".join(route['steps'])
+                route_text = f"""
+[SYSTEM NOTICE: Real-time route data]
+Starting point: {route['start']}
+Destination: {route['end']}
+Distance: {route['distance']}
+Estimated time: {route['time']}
+
+Directions:
+{directions_text}
+"""
+            else:
+                route_text = "[SYSTEM NOTICE: Google Routes API was unable to find a route.]"
+
+            
+            history.append({"role": "user", "content": route_text})
+
+        
+        response = client.messages.create(
+            model="claude-4-5-20251001",
+            max_tokens=600,
+            system=system_message,
+            messages=history
+        )
+
+        reply = response.content[0].text
+        print(f"\nBen: {reply}\n")
+
+    
+        history.append({"role": "assistant", "content": reply})
+
+    system_message = """
+You are Ben, a highly capable, articulate GPS navigation expert and route coordinator. Your job is to translate raw, structured route data into natural, confidence-inspiring driving instructions.
 
 Follow these strict operational constraints:
 1. FACTUAL ANCHORING: Base your response *entirely* on the provided [SYSTEM NOTICE] data. Do not invent highway names, estimated times, distances, or landmarks. If data is missing or incomplete, state what you have without making up the rest.
@@ -169,7 +227,7 @@ Directions data:
         # Generate response using your Claude 4.5 engine snapshot
         response = client.messages.create(
             model="claude-4-5-20251001",
-            max_tokens=600,
+            max_tokens=1500,
             system=system_message,
             messages=history
         )

@@ -140,10 +140,99 @@ all_tools = [location_tool, concert_tool]
 
 
 
-def run_chat():
-    print('You: hello!')
+def run_chat(history):
+    print("\n🎵 June (Concert Agent) is active!")
+    print("Type 'ben' to switch to Ben, 'switch' for menu, or 'exit' to quit.\n")
+
     system_message = """
-    You are Alex, a concert information assistant.
+You are June, a concert information assistant. Your job is to help users find and learn about upcoming concerts and events.
+
+Rules:
+- Always provide accurate and up to date information about concerts and events.
+- Always ask the user for their location if they haven't provided it yet.
+- Never make up concert information. If you don't know, say so.
+
+Response format:
+- Respond in a clear, friendly manner.
+- End with one natural follow-up question.
+"""
+
+    while True:
+        user_input = input("\nYou: ").strip()
+
+        # Switch / Exit command checks
+        if user_input.lower() in ["ben", "switch to ben"]:
+            return "ben"
+        elif user_input.lower() in ["switch", "change", "menu"]:
+            return "switch"
+        elif user_input.lower() in ["exit", "quit"]:
+            return "exit"
+
+        # Log user prompt to shared history
+        history.append({"role": "user", "content": user_input})
+
+        
+        while True:
+            response = client.messages.create(
+                model="claude-3-5-haiku-20241022",
+                max_tokens=600,
+                temperature=0.7,
+                system=system_message,
+                tools=all_tools,
+                messages=history,
+            )
+
+            if response.stop_reason != "tool_use":
+                break
+
+            
+            history.append({"role": "assistant", "content": response.content})
+
+            tool_results_content = []
+
+            for content_block in response.content:
+                if content_block.type == "tool_use":
+                    tool_name = content_block.name
+                    tool_use_id = content_block.id
+                    tool_input = content_block.input
+
+                    if tool_name == "get_user_location_by_ip":
+                        print("[System: June is checking your location...]")
+                        tool_result = get_user_location_by_ip(
+                            ip_address=tool_input.get("ip_address")
+                        )
+
+                    elif tool_name == "find_concerts_by_location":
+                        print("[System: June is checking concert tickets...]")
+                        tool_result = find_concerts_by_location(
+                            city=tool_input.get("city"),
+                            radius=tool_input.get("radius", "100"),
+                        )
+
+                    tool_results_content.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use_id,
+                        "content": str(tool_result),
+                    })
+
+            
+            history.append({
+                "role": "user",
+                "content": tool_results_content,
+            })
+
+        
+        reply = ""
+        for block in response.content:
+            if block.type == "text":
+                reply += block.text
+
+        print(f"\nJune: {reply}")
+        
+        # Log final assistant reply to shared history
+        history.append({"role": "assistant", "content": reply})
+    system_message = """
+    You are June, a concert information assistant.
 
     Your job is to help users find and learn about upcoming concerts and events.
 
@@ -171,7 +260,7 @@ def run_chat():
         while True:
             response = client.messages.create(
                 model='claude-haiku-4-5-20251001',
-                max_tokens=600,
+                max_tokens=1500,
                 temperature=0.7,
                 system=system_message,
                 tools=all_tools,
