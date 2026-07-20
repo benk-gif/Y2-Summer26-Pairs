@@ -103,68 +103,74 @@ def get_route(start, destination):
         print(f"Routing error: {e}")
         return None
 
-# Inside app2.py
 def run_chat(history):
     print("\n🚗 Ben (Routes Agent) is active!")
-    print("Type 'june' to switch to June, or 'exit' to quit.\n")
+    print("Type 'june' to switch to June, 'switch' for menu, or 'exit' to quit.\n")
 
     system_message = """
-You are Ben, a GPS navigation expert. Translate raw route data into natural driving instructions.
-Base your response on the provided [SYSTEM NOTICE] data.
+You are Ben, a highly capable, articulate GPS navigation expert and route coordinator. Your job is to translate raw, structured route data into natural, confidence-inspiring driving instructions.
+
+Follow these strict operational constraints:
+1. FACTUAL ANCHORING: Base your response *entirely* on the provided [SYSTEM NOTICE] data. Do not invent highway names, estimated times, distances, or landmarks. If data is missing or incomplete, state what you have without making up the rest.
+2. STRUCTURE: Start with a brief, warm 1-2 sentence overview summarizing the journey (e.g., total distance and approximate drive time under current traffic conditions).
+3. DIRECTIONS: Present the step-by-step navigation instructions as a clean, numbered list. Strip out any residual raw HTML fragments if you see them. Keep each instruction concise and punchy.
+4. TONE: Professional, reassuring, and highly clear—like an elite concierge mapping out a trip for a traveler. Avoid dry, robotic code readouts; make it feel like a polished human assistant speaking.
 """
 
     while True:
-        user_input = input("You: ").strip()
+        user_input = input("\nYou: ").strip()
 
-        
+        # Switch / Exit command checks
         if user_input.lower() in ["june", "switch to june"]:
             return "june"
+        elif user_input.lower() in ["switch", "change", "menu"]:
+            return "switch"
         elif user_input.lower() in ["exit", "quit"]:
             return "exit"
 
-    
+        # Log user's input to shared history
         history.append({"role": "user", "content": user_input})
 
-        
+        # Fetch route logic if origin and destination are given
         if " to " in user_input.lower():
             parts = user_input.lower().split(" to ")
             start = parts[0].replace("route me from ", "")
             destination = parts[1]
 
-            print("\nFinding route...")
+            print("\nFinding route using Google Routes API...")
             route = get_route(start, destination)
 
             if route:
-                directions_text = "\n".join(route['steps'])
+                directions_text = "\n".join(route["steps"])
                 route_text = f"""
-[SYSTEM NOTICE: Real-time route data]
+[SYSTEM NOTICE: The following real-time data has been fetched for the user's request]
 Starting point: {route['start']}
 Destination: {route['end']}
 Distance: {route['distance']}
 Estimated time: {route['time']}
 
-Directions:
+Directions data:
 {directions_text}
 """
             else:
-                route_text = "[SYSTEM NOTICE: Google Routes API was unable to find a route.]"
+                route_text = "[SYSTEM NOTICE: Google Routes API was unable to find a valid driving route between these locations.]"
 
-            
             history.append({"role": "user", "content": route_text})
 
-        
+        # Call Claude API with the shared history
         response = client.messages.create(
-            model="claude-4-5-20251001",
-            max_tokens=600,
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=3000,
             system=system_message,
-            messages=history
+            messages=history,
         )
 
         reply = response.content[0].text
-        print(f"\nBen: {reply}\n")
+        print(f"\nBen: {reply}")
 
-    
+        # Log assistant reply to shared history
         history.append({"role": "assistant", "content": reply})
+    
 
     system_message = """
 You are Ben, a highly capable, articulate GPS navigation expert and route coordinator. Your job is to translate raw, structured route data into natural, confidence-inspiring driving instructions.
