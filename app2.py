@@ -120,7 +120,6 @@ Follow these strict operational constraints:
     while True:
         user_input = input("\nYou: ").strip()
 
-        # Switch / Exit command checks
         if user_input.lower() in ["june", "switch to june"]:
             return "june"
         elif user_input.lower() in ["switch", "change", "menu"]:
@@ -128,10 +127,8 @@ Follow these strict operational constraints:
         elif user_input.lower() in ["exit", "quit"]:
             return "exit"
 
-        # Log user's input to shared history
         history.append({"role": "user", "content": user_input})
 
-        # Fetch route logic if origin and destination are given
         if " to " in user_input.lower():
             parts = user_input.lower().split(" to ")
             start = parts[0].replace("route me from ", "")
@@ -157,7 +154,6 @@ Directions data:
 
             history.append({"role": "user", "content": route_text})
 
-        # Call Claude API with the shared history
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
             max_tokens=3000,
@@ -168,7 +164,6 @@ Directions data:
         reply = response.content[0].text
         print(f"\nBen: {reply}")
 
-        # Log assistant reply to shared history
         history.append({"role": "assistant", "content": reply})
     
 
@@ -177,7 +172,7 @@ You are Ben, a highly capable, articulate GPS navigation expert and route coordi
 
 Follow these strict operational constraints:
 1. FACTUAL ANCHORING: Base your response *entirely* on the provided [SYSTEM NOTICE] data. Do not invent highway names, estimated times, distances, or landmarks. If data is missing or incomplete, state what you have without making up the rest.
-2. STRUCTURE: Start with a brief, warm 1-2 sentence overview summarizing the journey (e.g., total distance and approximate drive time under current traffic conditions).
+What's your current location or where will you be traveling from?2. STRUCTURE: Start with a brief, warm 1-2 sentence overview summarizing the journey (e.g., total distance and approximate drive time under current traffic conditions).
 3. DIRECTIONS: Present the step-by-step navigation instructions as a clean, numbered list. Strip out any residual raw HTML fragments if you see them. Keep each instruction concise and punchy.
 4. TONE: Professional, reassuring, and highly clear—like an elite concierge mapping out a trip for a traveler. Avoid dry, robotic code readouts; make it feel like a polished human assistant speaking.
 """
@@ -190,7 +185,6 @@ Follow these strict operational constraints:
         if user_input.lower() == "exit":
             break
 
-        # Log what the user actually said
         history.append({
             "role": "user",
             "content": user_input
@@ -230,7 +224,6 @@ Directions data:
                 "content": "[SYSTEM NOTICE: User syntax was malformed. Inform them to use: 'Route me from [X] to [Y]']"
             })
 
-        # Generate response using your Claude 4.5 engine snapshot
         response = client.messages.create(
             model="claude-4-5-20251001",
             max_tokens=1500,

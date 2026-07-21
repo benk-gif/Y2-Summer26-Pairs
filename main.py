@@ -3,6 +3,9 @@ import app2
 
 
 def main():
+    print("")
+    print("Welcome to the Multi-Agent Chat Application!, which includes two agents: 'ben' (routes) and 'june' (concerts)?")
+    print("")
     shared_history = []
 
     current_agent = (

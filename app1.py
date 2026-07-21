@@ -168,7 +168,6 @@ Response format:
         elif user_input.lower() in ["exit", "quit"]:
             return "exit"
 
-        # Log user prompt to shared history
         history.append({"role": "user", "content": user_input})
 
         
@@ -229,7 +228,6 @@ Response format:
 
         print(f"\nJune: {reply}")
         
-        # Log final assistant reply to shared history
         history.append({"role": "assistant", "content": reply})
     system_message = """
     You are June, a concert information assistant.
